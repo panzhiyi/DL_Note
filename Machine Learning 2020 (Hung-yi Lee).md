@@ -307,3 +307,141 @@ class 1:(0, 0), (1, 1)	class 2:(0, 1), (1, 0)
 当我们将一个又一个的逻辑回归连接组合之后，将逻辑回归换一个叫法Neuron，我们就获得了一个**神经网络**。所以我们可以看到神经网络的本质就是将输入特征（输入层）经过层层的特征转换（隐藏层），最后得到一个能被逻辑回归（输出层）处理的特征。
 
 ## Brief Intorduciton of Deep Learning
+
+#### 怎样进行深度学习呢？
+
+和机器学习的步骤一样：定义模型，loss函数，梯度下降
+
+#### 定义模型
+
+通过对神经元不同的连接方式，我们可以定义多种多样的神经网络模型
+
+##### Full Connected Feedforward Network (FCN，全连接前馈网络)
+
+全连接：每一层每一个神经元的输出都作为后一层每一个神经元的输入
+
+<img src=".\images\image-20200601160125532.png" alt="image-20200601160125532" style="zoom:50%;" />
+
+为什么可以使用**GPU加速**？GPU是针对矩阵运算做的优化，而神经网络的计算正好是矩阵运算。
+
+<img src=".\images\image-20200601160416549.png" alt="image-20200601160416549" style="zoom:50%;" />
+
+#### 定义loss function
+
+不同的任务定义不同的loss function，比如分类任务时同逻辑回归的loss function，cross-entropy loss
+
+#### 梯度下降——（back propagation）反向传播算法
+
+反向传播算法是有效的计算网络中每一个参数的梯度的方法（所以可以不用掌握的太明白，只需要知道是一种适用于深度网络的梯度下降方法）
+
+链式法则：
+
+* $y=g(x)$，$z=h(y)$
+  $$
+  \frac{dz}{dx}=\frac{dz}{dy}\frac{dy}{dx}
+  $$
+  
+* $x=g(s)$，$y=h(s)$，$z=k(x,y)$
+  $$
+  \frac{dz}{ds}=\frac{\partial z}{\partial x}\frac{dx}{ds}+\frac{\partial z}{\partial y}\frac{dy}{ds}
+  $$
+
+对于loss function C，某个神经元的w对于C的偏导为（z是该神经元的输出）
+$$
+\frac{\partial C}{\partial w}=\frac{\partial z}{\partial w}\frac{\partial C}{\partial z}
+$$
+其中计算所有神经元w对z的偏导$\frac{\partial z}{\partial w}$的过程称为前向传播，计算所有$\frac{\partial C}{\partial z}$的过程叫反向传播
+
+* 前向传播：$\frac{\partial z}{\partial w}=x$，其值等于该神经元的输入值x
+
+* 反向传播：我们如果假设该神经元后连接的下一层所有神经元的$\frac{\partial C}{\partial z}$已知，那么有
+
+  <img src=".\images\image-20200601164813950.png" alt="image-20200601164813950" style="zoom:50%;" />
+
+  我们将网络的结果输入输出反向，然后将$\frac{\partial C}{\partial z'}$和$\frac{\partial C}{\partial z''}$作为反向网络的输入进行计算就可以算出$\frac{\partial C}{\partial z}$的值了，这就是反向传播了
+
+  <img src=".\images\image-20200601164918933.png" alt="image-20200601164918933" style="zoom:50%;" />
+
+## Why Deep?
+
+有理论证明任何连续的函式，都可用一层的隐藏层的网络来表示，那么为什么网络要变深而不是变胖？
+
+为了公平的比较，我们使用同样参数量的深瘦网络和浅胖网络作比较，发现深瘦网络性能优于后者。
+
+简单的理解原因：深层的网络能够将学习任务模块化，可以更高效的学习特征。
+
+**end-to-end learning(端到端的学习)**: 只要给输入和输出，函式怎样去做是自动学习出来的而不需要人为指定
+
+## Tips for Deep Learning
+
+当你发现深度学习的结果不好的时候，可能的原因和对应的解决方法：
+
+#### Gradient Vanish(梯度消失)
+
+靠近输入层的参数梯度很小，靠近输出层的参数梯度正常，导致前层的参数并没有被充分训练到。
+
+因为如果使用sigmoid激活函数，那么sigmoid的导数范围是0-1，由于网络很深，经过层层的乘法，前层的导数会越来越接近0.
+
+解决办法：使用ReLU或者Maxout激活函数来代替sigmoid激活函数
+
+##### ReLU
+
+<img src=".\images\image-20200601170628770.png" alt="image-20200601170628770" style="zoom:67%;" />
+
+优点：计算快，符合生物观察，解决梯度消失问题
+
+##### Maxout
+
+learnable activation function
+
+<img src=".\images\image-20200601171104373.png" alt="image-20200601171104373" style="zoom:50%;" />
+
+#### 局部最小值
+
+梯度下降会让结果落入局部最小值
+
+解决办法：调整梯度下降算法的方案
+
+##### Momentum(动量)
+
+考虑上一次梯度的影响，然后影响这一次的参数更新
+
+#### Overfitting(过拟合)
+
+过度拟合训练数据，而导致在测试数据上的性能降低
+
+##### Early Stopping(早停)
+
+在训练过程中刚要出现过拟合的情况时，即使停止训练。
+
+##### Regularization(正则化)
+
+> 加入l2正则项的loss function为：
+
+$$
+L'(\theta)=L(\theta)+\lambda\frac{1}{2}||\theta||_2
+$$
+
+其梯度为：
+$$
+\frac{\partial L'}{\partial w}=\frac{\partial L}{\partial w}+\lambda w
+$$
+那么参数更新公式变为：
+
+
+$$
+w^{t+1}=w^t-\eta(\frac{\partial L}{\partial w}+\lambda w^t)=(1-\eta\lambda)w^t-\eta\frac{\partial L}{\partial w}
+$$
+所以$1-\eta\lambda$是一个接近于1的数字（一般为0.99），为weight decay。
+
+> 加入l1正则项的loss function为：
+
+$$
+w^{t+1}=w^t-\eta(\frac{\partial L}{\partial w}+\lambda sgn(w^t))=w^t-\eta\frac{\partial L}{\partial w}-\eta\lambda \, sgn(w^t))
+$$
+
+##### Dropout
+
+训练过程中，每次训练都随机丢弃p%的神经元，使得网络变瘦变简单。虽然某些参数在本次训练中由于丢弃而未被更新，但是在整个训练过程中仍然会被训练。在测试过程中，用整个网络来做测试而不丢弃神经元，同时将参数都乘上（1-p%）。
+
+可以用集成学习的思想来理解dropout为什么有效。
