@@ -445,3 +445,87 @@ $$
 训练过程中，每次训练都随机丢弃p%的神经元，使得网络变瘦变简单。虽然某些参数在本次训练中由于丢弃而未被更新，但是在整个训练过程中仍然会被训练。在测试过程中，用整个网络来做测试而不丢弃神经元，同时将参数都乘上（1-p%）。
 
 可以用集成学习的思想来理解dropout为什么有效。
+
+## Convolutional Neural Network(CNN)
+
+卷积神经网络(CNN)是专门针对图像数据设计的网络结构。
+
+如果我们采用FCN来处理图像，由于图像分别率很高的原因导致输入数据的维度特别高，所以FCN中的参数数量会太大。
+
+CNN实质上就是从FCN中删掉某些多余的神经元连接，使网络在处理图像数据时更加高效。(训练层面的提高)
+
+为什么CNN能在删掉神经元连接的情况下依然有效呢？(结果层面的提高)
+
+* 底层的网络如果说学习到简单的pattern的话，通常对于图片简单的pattern覆盖的区域只是图片的一小部分（可以做**局部**卷积）
+* 在图像中pattern通常在图像的各个位置会重复出现，所以可以用同一种学习的pattern来检测图像中所有的位置（可以做**参数共享**）
+
+#### CNN的网络架构
+
+<img src=".\images\image-20200602100415006.png" alt="image-20200602100415006" style="zoom:67%;" />
+
+##### Convolution
+
+考虑这样的操作，用某一大小的filter与图像上相同大小的局部做内积，在固定的步长下，我们可以得到一张新的feature map。
+
+对于$m_1*m_2$大小的图像，c个$n*n$大小的filter，固定步长s下，得到的新的feature map的大小为$((m_1-n)/s)*((m_2-n)/s)*n$.
+
+**padding**：如果想要保持输入feature map和输出feature map的大小一致，需要在周围补0，叫做padding。
+
+这样的卷积操作可以完美的用网络来构造出来，通过网络来学习filter的参数。由于局部卷积和参数共享，使得网络的参数量大大减少。
+
+##### Pooling(池化)
+
+将n*n大小里的值选一个最大的作为输出，叫做max pooling；平均后作为输出，叫做average pooling.
+
+##### Flatten
+
+将feature map展成一维向量，作为后面全连接层的输入。
+
+## Recurrent Neural Network(RNN)
+
+循环神经网络是针对时序数据设计的。
+
+假设我们去理解一句话的含义，如果每次输入数据只是一个词，那么网络就无法理解句子中词与词之间的含义。如果我们将一句话作为输入，那么长度不定以及词与词之间的顺序网络难以理解。
+
+但是如果我们使用网络中的值用来表示网络读取前一次数据时的状态，当前的输入包括输入值+状态值，那么我们就能够合理的处理时序数据了。
+
+#### simple version
+
+<img src=".\images\image-20200602110355658.png" alt="image-20200602110355658" style="zoom:67%;" />
+
+#### LSTM(Long Short-term Memory)
+
+<img src=".\images\image-20200602111312857.png" alt="image-20200602111312857" style="zoom:67%;" />
+
+输入控制阀门，忘记控制阀门，输出控制阀门。我们用上述的结构来代替原来网络中的神经元。
+
+## Semi-supervised Learning
+
+训练数据中，只有一小部分数据有label，绝大部分只有数据却没有label。
+
+为什么semi-supervised learning是对任务有用的？
+
+unlabeled data 的分布可以告诉我们有用的信息。
+
+#### Semi-supervised Generative Model
+
+类似于EM&k-mean算法的思想，先利用labeled data估计出分布，然后根据分布来估计每个unlabeled data属于不同类别的概率，然后再根据算出的概率重新和labeled data一起更新分布，重复操作。这样不再是最大似然labeled data估计，而是最大似然labeled data + unlabeled data估计。
+
+#### Low-density Separation
+
+##### self-training
+
+使用labeled data训练出model f，然后用f在unlabeled data上获得pseudo-label，然后将一小部分unlabeled data加入到labeled data set中重新训练model f.
+
+与Semi-supervised Generative Model相比，self-training使用了hard label，而Generative Model使用了soft label(概率)。
+
+对于逻辑回归来说，我们只能采用hard label的形式，因为soft label对model的更新没有影响。
+
+##### Entropy-based Regularization
+
+我们希望分类输出的结果是越集中越好，那么我们可以计算输出结果的entropy作为训练的loss function的一项。
+$$
+L=\sum_{x^r}C(y^r,\hat y^r)+\lambda\sum_{x^u}E(y^u)
+$$
+前一项为对labeled data的cross entropy loss，后一项为对unlabeled data的entropy loss.
+
