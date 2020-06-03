@@ -662,7 +662,7 @@ White Box v.s. Black Box
 * 在输入时加入filter，对输入进行平滑处理噪声。
 * 对输入进行缩放或padding
 
-实际上如果attack时一直上述操作，那么可以针对特定处理再进行attack
+实际上如果attack时已知上述操作，那么可以针对特定处理再进行attack
 
 ##### Proactive defense
 
@@ -693,3 +693,18 @@ prune neuron优于weight，因为在实际操作的时候，为了补齐，prune
 因为teacher network相比原来的label给了更多的信息。比如原来手写数字辨识输入图片1的例子，原来label为1，但是teacher network给的label为1的可能性为0.7，7的可能性为0.2，9的可能性为0.1，意味着透露出1和7，9是比较相似的。
 
 #### Parameter Quantization
+
+对网络的参数进行量化：
+
+使用更少的位来表示参数
+
+对参数进行聚类，用同类的参数的平均值来代替参数的值
+
+##### binary weight
+
+将网络的参数只是用+1，-1来离散表示，梯度更新就从一组binary weight到另一组binary weight.
+
+发现会使网络更好，原因是类似于正则化的效果。
+
+#### Architecture Design
+
