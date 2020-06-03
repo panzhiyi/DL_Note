@@ -589,4 +589,107 @@ component粒度也是要动态选择的，太小对结果影响就都很小，�
 
 **利用梯度**：可以对每个输入xi计算对yk的梯度，表示输入对输出的影响大小，也反映了判断出yk的在输入上的位置。（CAMs）
 
-#### lobal explaination
+#### Global explaination
+
+##### Activation Maximization
+
+$$
+x^*=arg\underset {x}{\operatorname {max} }\,y_i
+$$
+
+我们将网络的参数固定而为了使yi变大优化输入x，那么我们就得到该网络输出最大yi对应的输入，我们就知道网络判断出yi时认为的输入长的是什么样子。
+
+然而如果只用第一个式子，输出的内容通常人类无法理解。
+
+* R(x)是人为定义的衡量x多像有意义的图像的值来做正则化
+
+$$
+x^*=arg\underset {x}{\operatorname {max} }\,y_i\,+R(x)
+$$
+
+* 使用生成器做“正则化”
+
+#### Local Interpretale Model-Agnostic Explanations(LIME)
+
+用某一个可解释的model来解释不可解释的model（用可解释model对不可解释的model做**局部拟合**）
+
+<img src=".\images\image-20200603194649099.png" alt="image-20200603194649099" style="zoom:67%;" />
+
+## Attack and Defense
+
+#### Attack DNN
+
+我们对网络能够分类正确的数据加入一些细小的噪声，使得网络将新的数据分类错误。
+
+##### Loss function for attack
+
+Trainning:							$L_{train}(\theta)=C(y^0,y^{true})$								希望输出label和真实label越近越好
+
+Non-targeted Attack:		$L(x')=-C(y',y^{true})$									希望输出label和真实label越远越好
+
+Targeted Attack:				$L(x')=-C(y',y^{true})+C(y^0,y^{false})$		希望输出label和真实label越远越好同时和假label越近越好
+
+Constraint:						  $d(x^0,x')\leq\varepsilon$												   希望噪声输入和原输入越像越好
+
+##### How to Attack
+
+$$
+x^*=arg\underset {d(x^0,x')\leq\varepsilon}{\operatorname {min} }\,L(x')
+$$
+
+如果没有限制，那么我们通过梯度下降，固定网络的参数，对loss function来修改输入x；由于有限制，每次梯度下降之后我们判断一下当前的输入x是否满足限制$d(x^0,x')\leq\varepsilon$，如果不满足，那么需要对当前的输入x进行修正，使得x满足限制。
+
+##### Why Attack happened?
+
+<img src=".\images\image-20200603203706493.png" alt="image-20200603203706493" style="zoom:67%;" />
+
+在某种通过梯度下降寻找的方向，在这个方向上非常不鲁棒。
+
+White Box v.s. Black Box
+
+前面提及的攻击都是已知网络参数$\theta$的前提下，称为White Box Attack。那如何进行Black Box Attack呢？
+
+##### Black Box
+
+使用同样的网络结构（甚至不同网络结构）和同样的训练数据自己训练一个proxy network，然后拿proxy network代替black network进行攻击同样有效。
+
+#### Defense
+
+##### Passive defense
+
+不修改网络的参数，是一种Anomaly Detection(是否能检测未知数据)
+
+* 在输入时加入filter，对输入进行平滑处理噪声。
+* 对输入进行缩放或padding
+
+实际上如果attack时一直上述操作，那么可以针对特定处理再进行attack
+
+##### Proactive defense
+
+训练时就考虑到要对攻击图片鲁棒
+
+多次训练：得到模型后，自我攻击，再重新训练。
+
+## Network Compression
+
+#### network pruning(网络剪枝)
+
+网络通常时过参数化的(over-parameterized)，所以可以进行prune
+
+<img src=".\images\image-20200603211412339.png" alt="image-20200603211412339" style="zoom: 50%;" />
+
+##### why pruning?
+
+为什么不直接训练一个小的网路，而是先训练大的再剪枝呢？因为大的网络更容易被优化。
+
+##### prune weight or neuron?
+
+prune neuron优于weight，因为在实际操作的时候，为了补齐，prune的weight都固定为0，并没有减少网络参数。
+
+#### Knowledge Distillation
+
+训练大的网络作为teacher network，然后用小的网络作为student network来模拟teacher network。让student network学习teacher network的输出。
+
+因为teacher network相比原来的label给了更多的信息。比如原来手写数字辨识输入图片1的例子，原来label为1，但是teacher network给的label为1的可能性为0.7，7的可能性为0.2，9的可能性为0.1，意味着透露出1和7，9是比较相似的。
+
+#### Parameter Quantization
