@@ -513,6 +513,8 @@ unlabeled data 的分布可以告诉我们有用的信息。
 
 #### Low-density Separation
 
+我们假设所有数据在分界处的数据密度分布最低
+
 ##### self-training
 
 使用labeled data训练出model f，然后用f在unlabeled data上获得pseudo-label，然后将一小部分unlabeled data加入到labeled data set中重新训练model f.
@@ -521,11 +523,70 @@ unlabeled data 的分布可以告诉我们有用的信息。
 
 对于逻辑回归来说，我们只能采用hard label的形式，因为soft label对model的更新没有影响。
 
-##### Entropy-based Regularization
+#### Entropy-based Regularization
 
-我们希望分类输出的结果是越集中越好，那么我们可以计算输出结果的entropy作为训练的loss function的一项。
+我们假设分类输出的结果是越集中越好
+
+那么我们可以计算输出结果的entropy(衡量数据分布的集中程度)作为训练的loss function的一项。
 $$
 L=\sum_{x^r}C(y^r,\hat y^r)+\lambda\sum_{x^u}E(y^u)
 $$
 前一项为对labeled data的cross entropy loss，后一项为对unlabeled data的entropy loss.
 
+#### Smoothness Assumption
+
+我们假设越相邻的数据他们是同一种label的可能性越大
+
+更精确的：
+
+* x的分布是不平均的（某些地方集中，某些地方分散）
+* x1和x2在密集区域靠近，那么$\hat y^1$和$\hat y^2$是一样的
+
+其实考虑的是x1和x2的**测地距离**的远近。
+
+#### Graph-based Approach
+
+建图，如果x1和x2足够接近，那么在x1和x2点之间连上一条边，相似度为这条边的权重。
+
+那么在同一个连通图的数据是同一种label，即label通过图结构传播。
+
+![image-20200603135622856](.\images\image-20200603135622856.png)
+
+##### Smoothness of labels
+
+$$
+S=\frac{1}{2}\sum_{i,j}w_{i,j}(y^i-y^j)^2
+$$
+
+这个值越小，越smoothness。
+
+##### 拉普拉斯矩阵
+
+这个很有意思的一点，我之前做的显著性区域检测，就是先找种子点，再对种子点进行扩散，用的就是拉普拉斯矩阵。和半监督学习中很相似，种子点就是带label的数据，对种子点进行扩散就是使用拉普拉斯学习未标记数据的label.
+
+![image-20200603140131324](.\images\image-20200603140131324.png)
+
+##### loss function for Graph-based Approach
+
+$$
+L=\sum_{x^r}C(y^r,\hat y^r)+\lambda S
+$$
+
+## Explainable Mechine Learning
+
+模型要对给出的结果做解释（有现实意义）
+
+* local explaination: 模型为什么判定该图片是猫？针对某一例子
+* global explaination: 模型认为猫应该长什么样子？针对所有例子
+
+#### Local explaination
+
+将object x分为N个components{x1,x2,…,xN}。对于不同object，components不同，对于图像是像素超像素，对于语音可以是一个单词。
+
+我们将object的某个component拿掉或改动后再让模型判断，如果对结果影响大，那么就认为该component是模型判断的关键。
+
+component粒度也是要动态选择的，太小对结果影响就都很小，太大对结果影响就都很大，不具有分辨性。
+
+**利用梯度**：可以对每个输入xi计算对yk的梯度，表示输入对输出的影响大小，也反映了判断出yk的在输入上的位置。（CAMs）
+
+#### lobal explaination
