@@ -708,3 +708,164 @@ prune neuron优于weight，因为在实际操作的时候，为了补齐，prune
 
 #### Architecture Design
 
+被认为是实际操作中最有效的方式。
+
+##### Low rank approximation
+
+低秩近似，在层与层之间加入一层来减少参数量，拿全连接举例，原来的需要W=M\*N个参数，现在需要U+V=M\*K+N\*K=(M+N)*K个参数，如果k<<M,N，那么就能达到降低网络参数的目的。
+
+<img src=".\images\image-20200604101152628.png" alt="image-20200604101152628" style="zoom: 67%;" />
+
+#### Dynamic Computation
+
+网络是动态计算的，可以视情况选择复杂还是简单的网络。
+
+* 训练多个不同的网络，缺点是要存储多个网络
+* 对不同层的特征都直接接一个分类器做分类，选择不同深度的层能做到不同结构的网络（这种可能会损害到原来网络的性能）
+
+## Unsupervised Learning
+
+非监督学习可以分成两大类：
+
+* Clustering&Dimension Reduction(化繁为简)
+* Generation(无中生有)
+
+### Clustering(聚类)
+
+K-means
+
+Hierarchical Agglomerative Clustering(HAC，聚合层次聚类)：按相邻程度建树
+
+### Dimension Reduction(降维)
+
+数据在某些维度上是冗余的。
+
+#### Feature selection
+
+直接拿掉某些维度，保留剩余维度
+
+#### Principle component analysis(PCA，主成分分析)
+
+线性降维$z=Wx$，我们有两种不同的解释，但都对应着PCA
+
+* **最大投影方差：**PCA希望能找到一个投影矩阵W，将高维数据x投影到低维空间中得到z，希望投影后的z的方差越大越好（希望z分散，便于分类）。
+
+* **最小重构代价：**PCA希望找到低维的空间，使得在低维空间的x的投影z，与高维的x的误差越小越好（投影后对离原数据的改变最小）
+
+PCA其实可以看成一层的auto-encoder的最优解。
+
+#### Neighbor Embedding
+
+非线性降维，可以保持点与点的测地距离关系
+
+##### Locally Linear Embedding(LLE)
+
+在高维空间中的$x_i$可以用其相邻的几个点$x_j$近似线性表示，其线性表示的参数为$w_{ij}$；LLE希望在降维后的$z_i$也可以用$z_j$表示，其参数和高维空间的参数$w_{ij}$相同。
+
+##### Laplacian Eigenmaps
+
+类似于半监督学习的图方法，根据点在高维空间的距离建图，希望降维后的z在空间中越smooth越好，而且降维后的z要span满整个低维空间，不然只有前面smooth的限制，z就全部等于0了。
+
+##### T-distributed Stochastic Neighbor Eembedding(t-SNE)
+
+前面的方法值要求相近的点接近，但未要求远离的点远离。
+
+计算所有高维点对的相似性$S(x^i,x^j)$，然后做normalization
+$$
+P(x^j|x^i)=\frac{S(x^i,x^j)}{\sum_{k\ne i}S(x^i,x^k)}
+$$
+同理我们可以得到降维后的normalization后的相似性$Q(z^j|z^i)$，我们希望两者相似性的分布尽可能相同，即
+$$
+L=\sum_i KL(P(*|x^i)Q(*|z^i))
+$$
+越小越好。
+
+> SNE&t-SNE
+
+高维相似性：$S(x^i,x^j)=exp(-||x^j-x^i||_2)$
+
+低维相似性：
+
+* SNE:$S'(z^i,z^j)=exp(-||z^j-z^i||_2)$
+* t-SNE:$S'(z^i,z^j)=1/(1+||z^j-z^i||_2)$
+
+#### Auto-encoder
+
+<img src=".\images\image-20200604141849443.png" alt="image-20200604141849443" style="zoom:67%;" />
+
+可以做pre-training DNN，不仅可以做压缩而且可以做升维。
+
+##### Auto-encoder for CNN
+
+<img src=".\images\image-20200604143814438.png" alt="image-20200604143814438" style="zoom: 67%;" />
+
+> Unpooling
+
+unpooling需要在之前pooling时额外记得每一个最大值是从哪里获得的。然后unpooling时把值放在纪录的位置，然后其他位置补0。
+
+或者直接将unpooling的值复制给全部区域（keras的做法）
+
+> Deconvolution
+
+实际上，deconvolution就是convolution。
+
+<img src=".\images\image-20200604144615233.png" alt="image-20200604144615233" style="zoom:67%;" />
+
+padding后做convolution就是deconvolution了。
+
+#### More for Auto-encoder
+
+##### More than minimizing reconstruction error
+
+###### Using Discriminator
+
+Discriminator: 输入图像和encoder学到的对应code，输出两者是否匹配。
+
+Discriminator的loss function为$L_D$，参数是$\phi$，其训练结果为$L^*_D=\underset{\phi}{min}\,L_D$；Encoder的参数为$\theta$，那么训练Encoder的公式为$\theta^*=\underset{\theta}{min}\,L^*_D$.
+
+那么经典的auto-encoder其实其实就是使用Discriminator的一个特例。
+
+###### Sequential Data
+
+如果是序列数据，那么输出的形式就会多种多样，导致auto-encoder变化多样。
+
+##### More interpretable embedding
+
+###### Feature Disentangle(特征分离)
+
+###### Discrete Representation(离散表示)
+
+将code表示为one-hot或者binary的形式，解读就更加容易。
+
+VQVAE: 使用codebook，让encoder学习的code与codebook中相似的vector来进行decoder，这样更容易让网络学习到输入的共性而不是输入的特性。
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
