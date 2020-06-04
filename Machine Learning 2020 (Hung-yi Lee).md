@@ -839,15 +839,39 @@ Discriminator的loss function为$L_D$，参数是$\phi$，其训练结果为$L^*
 
 VQVAE: 使用codebook，让encoder学习的code与codebook中相似的vector来进行decoder，这样更容易让网络学习到输入的共性而不是输入的特性。
 
+### Generation
 
+#### PixelRNN
 
+初始一张图像的第一个像素，输入RNN来预测下一个像素，然后将前面的所有像素重新作为输入预测下一个像素。
 
+这样操作如果指定了第一个像素的值，输出图像就确定了，所以每次预测下一个像素时都让模型有概率选择不是最有可能出现的那个像素，这样保证随机性。
 
+#### Variational Auto-Encoder(VAE)
 
+<img src=".\images\image-20200604212413368.png" alt="image-20200604212413368" style="zoom:67%;" />
 
+使用VAE相比PixelRNN来说，能够控制生成数据，我们固定code的值，只改变某几维的值，能够通过生成数据的改变理解着几维的含义。
 
+##### Why VAE?
 
+为什么使用VAE呢，是因为通常使用普通的AE的decoder生成数据的时候，结果不好。我们希望说在code和code之间的code对应的图像是介于图像和图像之间的，VAE通过对code增加噪声使code周围的一部分code都生成类似的图像。
 
+<img src=".\images\image-20200604213144701.png" alt="image-20200604213144701" style="zoom:67%;" />
+
+如下图，$\sigma$表示噪声的方差，exp保证噪声是正数影响，而$m$是我们原来的code。如果只用重构误差限制，那么网络将不学习噪声部分，所以需要添加loss function控制$\sigma$的值不能太小。
+
+<img src=".\images\image-20200604213624362.png" alt="image-20200604213624362" style="zoom:67%;" />
+
+#### Generative Adversarial Network
+
+两个网络对抗学习，一个生成网络G任务是创造以假乱真的图像，一个描述网络D任务是判断一张图像是不是人造的。
+
+一开始G生成的数据很差，D很容易分辨，直到G生成的数据使得D无法分辨为止，那么G就被训练好了。由于G从来没有看过真实的数据，所以产生的数据都是真实数据中不存在的。
+
+G的输入是一个随机的向量，输出是一张图像；D的输入是G生成的图像或者真实存在的图像，输出是0/1表示是生成/真实的图像。
+
+<img src=".\images\image-20200605002027292.png" alt="image-20200605002027292" style="zoom:67%;" />
 
 
 
