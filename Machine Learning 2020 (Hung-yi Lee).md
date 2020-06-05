@@ -873,23 +873,150 @@ G的输入是一个随机的向量，输出是一张图像；D的输入是G生�
 
 <img src=".\images\image-20200605002027292.png" alt="image-20200605002027292" style="zoom:67%;" />
 
+## Anomaly Dectection
 
+training data$\{x^1,x^2,…,x^N\}$，我们需要找到一个函式检测输入的x时候与training data相似。
 
+所以异常数据只是相对于训练数据来讲的。
 
+直接获得一组正常数据和一组异常数据去训练一个二分类器？
 
+异常检测无法视为二分类的问题，因为异常数据太多无法穷举，所以无法将异常数据视为一种类别；有些情况异常数据难以获得。
 
+#### with labels
 
+但是没有一种label为“unknown”类。
 
+##### 算法
 
+根据labels创建一个分类器，而且希望分类器同时输出判断该分类的信心分数c，然后根据c的大小来判断输入是否是异常数据。
 
+confidence: the maximum scores / negative Entropy
 
+##### 如何判断Anomaly Dectection的好坏？
 
+evaluation Set: Images x and Label of x is from training data labels or not.
 
+异常数据和正常数据通常数量悬殊，所以简单的使用正确率来评价Anomaly Dectection的好坏。
 
+我们可以设置cost来对正常数据判断到异常和异常判断到正常的错误平衡。
 
+可能的问题：
 
+可能存在比原来数据更具有特征的数据（如分类猫和狗的任务，猫和狗是正常数据，但是老虎和狼相对于猫和狗来讲更具有区分性，所以这样的数据放入分类器会产生更强的信心分数）
 
+#### without labels
 
+##### polluted:
 
+假设多数训练数据都是正常数据，只有一小部分训练数据是异常数据。
 
+算法：学习一个概率分布$P(x)=f_\theta(x)$来拟合所有的训练数据，当$P(x)>\lambda$时x是正常数据，反之是异常数据。
 
+根据极大似然估计算出$\theta^*$，然后就能算出所有数据产生的概率，那些产生概率小的数据就是异常数据。
+
+##### clean
+
+训练数据都是正常数据，没有异常数据。
+
+利用auto-encoder，输入为训练数据，当新的数据输入该auto-encoder时，正常数据会很容易被还原，而异常数据难以被还原。
+
+## Meta Learning(元学习)
+
+learn to learn，从其他学习任务中学习到如何学习的技巧。
+
+##### 与machine learning的对比
+
+<img src=".\images\image-20200605161337561.png" alt="image-20200605161337561" style="zoom:67%;" />
+
+怎样找到F呢，和找f的步骤是一样的（只不过F是找一个f的函数，而f是找一个model的函数）。
+
+<img src=".\images\image-20200605161543491.png" alt="image-20200605161543491" style="zoom:67%;" />
+
+##### Define a set of learning algorithm
+
+<img src=".\images\image-20200605162112896.png" alt="image-20200605162112896" style="zoom:67%;" />
+
+灰框中所有的步骤都是都是一个learning algorithm F，实际上之前的深度学习的步骤都是人为设计的（比如红框中的网络架构，初始参数，梯度更新方法）。如果我们采用不同的网络架构，不同的初始化的参数值，不同梯度更新方法就会有一组learning algorithms。
+
+##### Define the goodness of a function F
+
+我们使用一个特定训练任务通过训练集的表现评价f，我们用多个训练任务的多个数据集的表现来评价F。
+$$
+L(F)=\sum^N_{n=1}l^n
+$$
+其中N表示有N个任务，$l^n$表示在第n个任务上测试集的loss。
+
+F的**训练资料(Support set)**是多个任务，每个任务里面有训练数据和测试数据，**测试资料(Query set)**是不同于训练任务的其他任务；f的训练资料是某个特定任务的训练集，测试资料是该任务的测试集。
+
+few-shot learning: 少样本学习。由于多个任务训练很慢，所以meta learning训练资料选择的任务都是few-shot learning来确保速度。
+
+##### Find the best function $F^*$
+
+$F^*=arg\, \underset{F}{min}\,L(F)$
+
+### MAML
+
+Model-Agnostic Meta-Learning
+$$
+L(\phi)=\sum^N_{n=1}l^n(\hat\theta^n)
+$$
+其中$\phi$决定了网络初始化参数$\hat\theta^n$的值，我们通过梯度下降就可以minimize $L(\phi)$，其公式为
+$$
+\phi=\phi-\eta\nabla_\phi L(\phi)
+$$
+实际操作中只在任务中下降$\theta$一次，原因就是梯度下降太慢了。
+
+那么$\nabla_\phi L(\phi)$怎么计算呢？实际上可以使用$\theta$下降一次后的梯度方向做近似。
+
+### Reptile
+
+$\nabla_\phi L(\phi)$在Reptile中怎么计算呢？使用$\theta$下降多次后的与初始的$\theta$的方向。
+
+![image-20200605171945306](.\images\image-20200605171945306.png)
+
+前面举例都是使用$\phi$决定了网络初始化参数$\hat\theta^n$的值，实际上$\phi$也可以决定网络的结构和梯度更新等等。
+
+## Life Long Learning
+
+Continuous Learning, Never Ending Learning, Incremental Learning
+
+同一个网络结构经过学习不同的任务使得对于学习过的每个任务都能有效解决。
+
+### Knowledge Retention(知识保留)
+
+but Not intransigence(但是不能够顽固，有能力学习新的东西)
+
+实际上现在的网络模型在连续训练不同任务时，会出现Catastrophic Forgetting(灾难性遗忘)的问题，即学一个任务就忘掉前面所有的任务。
+
+为什么不能简单的将所有任务的输入数据混合一起训练呢？新任务来到时需要将以前所有任务的数据都拿来，而且训练时间变长。
+
+#### Elastic Weight Consolidation(可塑权重巩固)
+
+在模型中的一些权重对于前面的任务是重要的，所以我们训练这次任务时只改变不重要的那些权重。
+$$
+L'(\theta)=L(\theta)+\lambda\sum_ib_i(\theta_i-\theta_i^b)^2
+$$
+其中，之前任务的每一个参数为$\theta_i^b$有一个权重$b_i$表示该参数有多重要。$b_i=0$时，表示本次训练对$\theta_i^b$无限制；$b_i=\infty$时，表示本次训练无法改变$\theta_i^b$的值。
+
+那么权重$b_i$怎么计算呢？计算$\theta_i^b$的二次微分作为权重$b_i$，若二次微分小，说明改变$\theta_i^b$使输出的结果变化小，反之，说明对输出结果的变化大。
+
+#### Generating Data
+
+使用生成器来生成之前任务的数据而不用存储之前任务的数据了。
+
+### Knowledge Transfer(知识转移)
+
+我们希望同一个模型在不同任务上的知识互通有无，不同的任务互相帮助。
+
+### Model Expansion(扩展模型)
+
+任务学到一定程度，模型无法很好的处理所有的任务，所以想要自动的对已有模型进行扩展，但是扩展后的参数需要足够有效，即不能无限度的扩展模型。
+
+### Curriculum Learning(课程式学习)
+
+学习 任务的顺序
+
+## Deep Reinforcement Learning
+
+强化学习
