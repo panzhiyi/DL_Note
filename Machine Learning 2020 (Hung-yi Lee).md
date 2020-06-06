@@ -8,6 +8,10 @@
 
 希望小朋友读到的时候能够开心，培养出学习的快乐。
 
+## catalog
+
+[TOC]
+
 ## Introduction
 
 #### Learning map
@@ -1019,4 +1023,105 @@ $$
 
 ## Deep Reinforcement Learning
 
-强化学习
+有一个Agent和一个Environment，Agent根据Environment的State做出一个行为可以改变Environment的状态，然后Environment会改变状态并给Agent一个Reward衡量刚刚Agent的行为是好还是不好。
+
+##### example
+
+alpha-go：根据棋盘的局势下子，然后棋盘的局势改变，然而reward是稀疏的，只有termial state时的输赢决定了reward，之前的落子基本上reward=0.
+
+play video game：根据观察游戏的显示画面，做出反应，然后游戏中得分作为反应的reward，直到最后游戏结束。整个过程成为一个episode，学习使得在整个episode过程中reward和最大。
+
+<img src=".\images\image-20200606153654238.png" alt="image-20200606153654238" style="zoom:67%;" />
+
+##### Diffculties of Reinforcement Learning
+
+* Reward delay：某些操作可以使得在未来操作中获得更大的reward，甚至需要某些在当前获得负reward的操作。（炉石手牌术的操作）
+* Agent的行为会对环境有影响，所以Agent需要学会探索（否则他不会知道那些操作会获得reward还是负的reward）。
+
+### Policy-based: Learning a Actor
+
+$Action=\pi(Observation)$，就是利用深度学习找一个函式。
+
+#### Defining a Function Set
+
+输入为图像，输出为action的概率，网络由于输入是图像，所以可以采用卷积神经网络。
+
+<img src=".\images\image-20200606161708066.png" alt="image-20200606161708066" style="zoom:67%;" />
+
+#### Defining a Loss Function
+
+我们拿Actor $\pi_\theta(s)$实际的去玩这个游戏，游戏过程中state序列为{$s_1,s_2,…,s_T$}，action用a表示，reward用r表示，那么
+
+total reward: $R_\theta=\sum_{t=1}^Tr_t$
+
+即使是同一个actor，total reward也是不一样的，因为actor根据输出概率随机选取的ation(为了保证探索)
+
+所以我们定义$\bar R_\theta$来表示$R_\theta$的期望值，我们希望最大化$\bar R_\theta$，而不是具有随机性的$R_\theta$
+
+##### 如何计算$\bar R_\theta$
+
+我们定义一个episode为一个$\tau=\{s_1,a_1,r_1,s_2,a_2,r_2,…,s_T,a_T,r_T\}$
+
+那么$\pi_\theta$下某个$\tau$出现的概率记为$P(\tau|\theta)$
+$$
+\bar R_\theta=\sum_\tau R(\tau)P(\tau|\theta)
+$$
+我们让$\pi_\theta$玩这个游戏N次，会获得{$\tau^1,\tau^2,…,\tau^N$}，这个过程就像是从$\tau$的分布中采样N次，那么
+$$
+\bar R_\theta=\sum_\tau R(\tau)P(\tau|\theta)\approx\frac{1}{N}\sum_{n=1}^NR(\tau^n)
+$$
+
+#### Find best Function（policy gradient）
+
+Gradient Ascent梯度上升，因为我们要让Reward最大化。
+$$
+\nabla\bar R_\theta=\sum_\tau R(\tau)\nabla P(\tau|\theta)\\
+=\sum_\tau R(\tau)P(\tau|\theta)\frac{\nabla P(\tau|\theta)}{P(\tau|\theta)}\\
+=\sum_\tau R(\tau)P(\tau|\theta)\nabla logP(\tau|\theta)\\
+\approx\frac{1}{N}\sum_{n=1}^NR(\tau^n)\nabla logP(\tau|\theta)
+$$
+其中，$\nabla logP(\tau|\theta)=\sum_{t=1}^T\nabla log\,p(a_t|s_t,\theta)$，所以最后
+$$
+\nabla\bar R_\theta\approx\frac{1}{N}\sum_{n=1}^NR(\tau^n)\nabla logP(\tau|\theta)\\
+=\frac{1}{N}\sum_{n=1}^N\sum_{t=1}^{T_n} R(\tau^n)\nabla log\,p(a_t|s_t,\theta)
+$$
+表示为在某一次游戏中，最后$R(\tau^n)$是正的，那么就增加第t次行动面对s选择为a的概率来指导$\theta$更新的方向，反之亦然。
+
+注意这里我们考虑是最后total reward的大小，从全局的结果来评价这次游戏的每一个操作。
+
+##### baseline
+
+如果reward在游戏中全是正数会存在一个问题，就是只要sample到的$\tau$就会增加其出现的概率，而抛弃了一些没有sample到的$\tau$但是获得的$R(\tau)$更大的情况。所以一般会在每一个reward前减掉一个bias，使得reward有正有负。
+
+### Value-based: Learning a Critic
+
+给定一个actor $\pi$，critic能够评估这个actor有多好
+
+state value function $V^\pi(s)$，它评估了在s的状态下，一直到游戏结束actor $\pi$能够得到的reward的期望值是多大。
+
+##### 如何学习$V^\pi(s)$
+
+* Monte-Carlo based approach(蒙特卡洛方法)，通过蒙特卡洛方法计算出某一状态下的reward的期望，然后让$V^\pi(s)$与算出来的期望越接近越好
+* Temporal-difference approach(时序差分算法)，利用公式$V^\pi(s_t)=V^\pi(s_{t+1})+r_t$，这样不需要跑完这个游戏再训练critic
+
+<img src=".\images\image-20200606191221291.png" alt="image-20200606191221291" style="zoom:67%;" />
+
+#### Q-Learning
+
+state value function $Q^\pi(s,a)$，它评估了在s的状态下，actor $\pi$采取了a后，一直到游戏结束能够得到的reward的期望值是多大
+
+在实际操作中我们不采用下图左边的形式而是右边的网络形式，这样只需要输入s可以得到所有action对应的Q
+
+<img src=".\images\image-20200606193315803.png" alt="image-20200606193315803" style="zoom:67%;" />
+
+当我们有了Q之后我们就可以根据Q找到一个$\pi'$比原来的$\pi$要表现得更好
+
+<img src=".\images\image-20200606193244848.png" alt="image-20200606193244848" style="zoom:67%;" />
+
+### Actor+Critic
+
+Asynchronous Advantage Actor-Critic (A3C)
+
+Advantage Actor-Critic: actor不再根据$R(\tau)$，而是根据critic的值来学习。
+
+Asynchronous: 对当前的模型开很多的分身，让分身在数据中训练，得到的梯度再取平均更新当前模型的参数。
