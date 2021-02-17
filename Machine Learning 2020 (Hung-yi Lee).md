@@ -546,7 +546,7 @@ $$
 
 那么在同一个连通图的数据是同一种label，即label通过图结构传播。
 
-![image-20200603135622856](.\images\image-20200603135622856.png)
+<img src=".\images\image-20200603135622856.png" alt="image-20200603135622856" style="zoom:67%;" />
 
 ##### Smoothness of labels
 
@@ -560,7 +560,7 @@ $$
 
 这个很有意思的一点，我之前做的显著性区域检测，就是先找种子点，再对种子点进行扩散，用的就是拉普拉斯矩阵。和半监督学习中很相似，种子点就是带label的数据，对种子点进行扩散就是使用拉普拉斯学习未标记数据的label.
 
-![image-20200603140131324](.\images\image-20200603140131324.png)
+<img src=".\images\image-20200603140131324.png" alt="image-20200603140131324" style="zoom:67%;" />
 
 ##### loss function for Graph-based Approach
 
